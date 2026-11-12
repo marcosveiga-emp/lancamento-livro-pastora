@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
-:root {
+:root,
+.dashboard-container,
+.login-container {
   --bg-color: #11170f;
   --surface-color: #1a2316;
   --surface-hover: #222e1d;
@@ -8,12 +10,14 @@
   --military-light: #556b2f;
   --text-main: #f4f5f0;
   --text-muted: #9aa690;
+  --gold-accent: #d4af37;
   --accent: #d4af37;
   --accent-hover: #e5c14d;
   --accent-glow: rgba(212, 175, 55, 0.28);
   --success: #22c55e;
   --warning: #eab308;
   --danger: #ef4444;
+  --military-border: #2c3a25;
   --border: #2c3a25;
   --border-gold: rgba(212, 175, 55, 0.35);
 }
@@ -67,7 +71,7 @@ body {
 }
 
 .brand-gold {
-  color: var(--accent);
+  color: var(--gold-accent);
   text-shadow: 0 0 18px rgba(212, 175, 55, 0.25);
 }
 
@@ -82,11 +86,11 @@ body {
   height: 58px;
   border-radius: 14px;
   background: linear-gradient(135deg, var(--military-primary), #233019);
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid var(--gold-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
+  color: var(--gold-accent);
   box-shadow: 0 0 20px var(--accent-glow);
   flex-shrink: 0;
 }
@@ -102,7 +106,7 @@ body {
   background: linear-gradient(160deg, var(--surface-color) 0%, #151d12 100%);
   padding: 1.4rem 1.5rem;
   border-radius: 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   display: flex;
   align-items: center;
   gap: 1.25rem;
@@ -127,7 +131,7 @@ body {
 
 .kpi-icon.gold {
   background-color: rgba(212, 175, 55, 0.14);
-  color: var(--accent);
+  color: var(--gold-accent);
   border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
@@ -167,7 +171,7 @@ body {
 
 .kpi-sub {
   font-size: 0.78rem;
-  color: var(--accent);
+  color: var(--gold-accent);
   margin-top: 0.25rem;
   display: block;
 }
@@ -189,7 +193,7 @@ body {
   background-color: var(--surface-color);
   padding: 1.5rem;
   border-radius: 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
 }
 
 .chart-header {
@@ -205,13 +209,13 @@ body {
 .table-container {
   background-color: var(--surface-color);
   border-radius: 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   overflow: hidden;
 }
 
 .table-header {
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--military-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -221,7 +225,7 @@ body {
 
 .search-input {
   background-color: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   color: var(--text-main);
   padding: 0.5rem 0.9rem;
   border-radius: 8px;
@@ -232,7 +236,7 @@ body {
 }
 
 .search-input:focus {
-  border-color: var(--accent);
+  border-color: var(--gold-accent);
 }
 
 .table-wrapper {
@@ -247,12 +251,12 @@ table {
 th, td {
   padding: 0.9rem 1.1rem;
   text-align: left;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--military-border);
   vertical-align: middle;
 }
 
 th {
-  color: var(--accent);
+  color: var(--gold-accent);
   font-weight: 600;
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -326,9 +330,9 @@ tr:last-child td {
 
 .btn-vip-mini:hover {
   background-color: rgba(212, 175, 55, 0.2);
-  color: var(--accent);
+  color: var(--gold-accent);
   border-style: solid;
-  border-color: var(--accent);
+  border-color: var(--gold-accent);
 }
 
 .checkbox-btn {
@@ -352,13 +356,13 @@ tr:last-child td {
 }
 
 .checkbox-btn.checked-gold {
-  background-color: var(--accent);
-  border-color: var(--accent);
+  background-color: var(--gold-accent);
+  border-color: var(--gold-accent);
   color: #11170f;
 }
 
 .checkbox-btn:hover {
-  border-color: var(--accent);
+  border-color: var(--gold-accent);
   transform: scale(1.06);
 }
 
@@ -376,7 +380,7 @@ tr:last-child td {
   height: 44px;
   border: 3px solid rgba(212, 175, 55, 0.15);
   border-radius: 50%;
-  border-top-color: var(--accent);
+  border-top-color: var(--gold-accent);
   animation: spin 1s ease-in-out infinite;
 }
 
@@ -406,7 +410,7 @@ tr:last-child td {
 }
 
 .btn-gold {
-  background: linear-gradient(135deg, var(--accent) 0%, #b89225 100%);
+  background: linear-gradient(135deg, var(--gold-accent) 0%, #b89225 100%);
   color: #11170f;
   border: none;
   padding: 0.55rem 1.1rem;
@@ -421,13 +425,13 @@ tr:last-child td {
 }
 
 .btn-gold:hover {
-  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--gold-accent) 100%);
   box-shadow: 0 0 15px var(--accent-glow);
 }
 
 .btn-outline {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   color: var(--text-muted);
   padding: 0.45rem 0.85rem;
   border-radius: 8px;
@@ -440,14 +444,14 @@ tr:last-child td {
 }
 
 .btn-outline:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--gold-accent);
+  color: var(--gold-accent);
 }
 
 .status-select {
   background-color: rgba(0, 0, 0, 0.25);
   color: var(--text-main);
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   padding: 0.45rem 0.7rem;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -458,7 +462,7 @@ tr:last-child td {
 }
 
 .status-select:focus {
-  border-color: var(--accent);
+  border-color: var(--gold-accent);
 }
 
 .status-select option {
@@ -472,7 +476,7 @@ tr:last-child td {
   background-color: rgba(0, 0, 0, 0.25);
   padding: 0.3rem;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   flex-wrap: wrap;
 }
 
@@ -494,14 +498,14 @@ tr:last-child td {
 }
 
 .filter-btn.active {
-  background: linear-gradient(135deg, var(--accent) 0%, #b89225 100%);
+  background: linear-gradient(135deg, var(--gold-accent) 0%, #b89225 100%);
   color: #11170f;
 }
 
 .date-input {
   background-color: var(--surface-color);
   color: var(--text-main);
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   padding: 0.4rem 0.6rem;
   border-radius: 6px;
   font-family: inherit;
@@ -510,7 +514,7 @@ tr:last-child td {
 }
 
 .date-input:focus {
-  border-color: var(--accent);
+  border-color: var(--gold-accent);
   outline: none;
 }
 
@@ -563,7 +567,7 @@ tr:last-child td {
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: var(--accent);
+  color: var(--gold-accent);
   font-size: 0.82rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -573,7 +577,7 @@ tr:last-child td {
 .login-input {
   width: 100%;
   background-color: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   padding: 0.75rem 1rem;
   border-radius: 8px;
   color: var(--text-main);
@@ -583,13 +587,13 @@ tr:last-child td {
 }
 
 .login-input:focus {
-  border-color: var(--accent);
+  border-color: var(--gold-accent);
   outline: none;
 }
 
 .login-btn {
   width: 100%;
-  background: linear-gradient(135deg, var(--accent) 0%, #b89225 100%);
+  background: linear-gradient(135deg, var(--gold-accent) 0%, #b89225 100%);
   color: #11170f;
   border: none;
   padding: 0.8rem;
@@ -604,7 +608,7 @@ tr:last-child td {
 }
 
 .login-btn:hover {
-  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--gold-accent) 100%);
   box-shadow: 0 0 20px var(--accent-glow);
 }
 
@@ -622,13 +626,13 @@ tr:last-child td {
   align-items: center;
   gap: 1rem;
   padding: 1.25rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--military-border);
 }
 
 .pagination-btn {
   background-color: rgba(0, 0, 0, 0.25);
   color: var(--text-main);
-  border: 1px solid var(--border);
+  border: 1px solid var(--military-border);
   padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
@@ -638,8 +642,8 @@ tr:last-child td {
 }
 
 .pagination-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--gold-accent);
+  color: var(--gold-accent);
 }
 
 .pagination-btn:disabled {

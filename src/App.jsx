@@ -656,7 +656,7 @@ function App() {
             <span
               style={{
                 fontSize: '0.82rem',
-                color: 'var(--accent)',
+                color: 'var(--gold-accent)',
                 background: 'rgba(212, 175, 55, 0.12)',
                 border: '1px solid rgba(212, 175, 55, 0.35)',
                 padding: '0.45rem 0.85rem',
@@ -684,7 +684,7 @@ function App() {
       {showConfigModal && (
         <div className="config-banner">
           <div style={{ flex: 1, minWidth: '280px' }}>
-            <strong style={{ color: 'var(--accent)', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>
+            <strong style={{ color: 'var(--gold-accent)', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>
               🔗 Conexão em Tempo Real com Google Sheets ("O Porque De Servir")
             </strong>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
@@ -769,7 +769,7 @@ function App() {
       <div className="charts-grid">
         <div className="chart-card">
           <h2 className="chart-header">
-            <Award size={18} color="var(--accent)" /> Evolução de Convites e Confirmações por Dia
+            <Award size={18} color="var(--gold-accent)" /> Evolução de Convites e Confirmações por Dia
           </h2>
           <div style={{ height: '280px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -855,7 +855,7 @@ function App() {
       <div className="table-container">
         <div className="table-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent)' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--gold-accent)' }}>
               Lista de Convidados ({filteredData.length})
             </h2>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '0.25rem 0.6rem', borderRadius: '999px' }}>
@@ -912,10 +912,10 @@ function App() {
         </div>
 
         {showAddModal && (
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.22)' }}>
+          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--military-border)', background: 'rgba(0,0,0,0.22)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <strong style={{ color: 'var(--accent)', fontSize: '0.95rem' }}>
+                <strong style={{ color: 'var(--gold-accent)', fontSize: '0.95rem' }}>
                   ➕ Adicionar Pessoas para Convidar (Lista Extra)
                 </strong>
                 <div className="filter-group">
@@ -1042,7 +1042,7 @@ function App() {
                           className="btn-whatsapp"
                           style={{
                             backgroundColor: 'rgba(212, 175, 55, 0.16)',
-                            color: 'var(--accent)',
+                            color: 'var(--gold-accent)',
                             borderColor: 'rgba(212, 175, 55, 0.45)'
                           }}
                           onClick={() => handleMarkInviteSent(row)}
@@ -1083,7 +1083,7 @@ function App() {
                         <span style={{ color: 'var(--text-muted)' }}>-</span>
                       )}
                     </td>
-                    <td style={{ textAlign: 'center', fontWeight: 700, color: row.total_livros > 0 ? 'var(--accent)' : 'var(--text-muted)' }}>
+                    <td style={{ textAlign: 'center', fontWeight: 700, color: row.total_livros > 0 ? 'var(--gold-accent)' : 'var(--text-muted)' }}>
                       {row.total_livros > 0 ? row.total_livros : '-'}
                     </td>
                   </tr>
