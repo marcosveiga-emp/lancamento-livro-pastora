@@ -670,6 +670,126 @@ tr:last-child td {
   flex-wrap: wrap;
 }
 
+/* Barra de Progresso de Pagantes (Meta 120) */
+.progress-card {
+  background: linear-gradient(135deg, rgba(26, 35, 22, 0.96) 0%, rgba(36, 49, 30, 0.92) 100%);
+  border: 1px solid var(--border-gold);
+  border-radius: 16px;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.45);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.progress-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--gold-accent);
+  letter-spacing: 0.4px;
+}
+
+.progress-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.progress-badge {
+  background-color: rgba(212, 175, 55, 0.16);
+  color: var(--gold-accent);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 14px;
+  background-color: rgba(0, 0, 0, 0.38);
+  border: 1px solid var(--military-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #d4af37 100%);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
+}
+
+/* Alerta de Follow-up (<= 3 dias) */
+.followup-alert-banner {
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.16) 0%, rgba(26, 35, 22, 0.95) 100%);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 14px;
+  padding: 1rem 1.35rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.followup-alert-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background-color: rgba(250, 204, 21, 0.18);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-whatsapp-followup {
+  background-color: rgba(234, 179, 8, 0.2) !important;
+  color: #facc15 !important;
+  border-color: rgba(250, 204, 21, 0.55) !important;
+}
+
+.btn-whatsapp-followup:hover {
+  background-color: #eab308 !important;
+  color: #11170f !important;
+}
+
+.btn-whatsapp-secondary {
+  background-color: rgba(212, 175, 55, 0.1) !important;
+  color: var(--gold-accent) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+.btn-whatsapp-secondary:hover {
+  background-color: var(--gold-accent) !important;
+  color: #11170f !important;
+}
+
+.badge-followup-alert {
+  background-color: rgba(250, 204, 21, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(250, 204, 21, 0.5);
+}
+
+.badge-expired {
+  background-color: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
 @media (max-width: 768px) {
   .dashboard-container {
     padding: 1rem;

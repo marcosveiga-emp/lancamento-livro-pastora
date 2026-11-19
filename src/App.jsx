@@ -14,6 +14,8 @@ import {
   Award,
   UserPlus,
   Send,
+  AlertTriangle,
+  MessageSquare,
   X
 } from 'lucide-react';
 import {
@@ -35,7 +37,53 @@ import {
 // Ou configure diretamente pelo botão "Conectar Planilha" no topo do painel
 const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwu6ZPyFIQwVQ2Ui0V-MUtPCqJVScEi5BWOOi7muODF6FtdV1Vtew11EAH51blv_Hyq/exec';
 
+const MAX_PAGANTES = 120;
+
+const DEFAULT_MSG_1 =
+  'Olá {nome}, tudo bem? Passando para enviar o seu convite especial para o jantar de lançamento do livro "O Porquê de Servir"! O seu prazo para confirmação é até {prazo}.';
+
+const DEFAULT_MSG_2 =
+  'Olá {nome}, tudo bem? Passando para lembrar que faltam apenas {dias} para expirar o seu convite do jantar de lançamento do livro "O Porquê de Servir" (prazo até {prazo}). Não deixe para a última hora, esperamos por si!';
+
 const INITIAL_SHEET_DATA = [];
+
+function getDeadlineInfo(row) {
+  const isVip = Boolean(row.vip || row.convidado_nao_paga);
+  if (row.jantar_pago || isVip) {
+    return { status: 'confirmed', daysLeft: null };
+  }
+  if (!row.prazo) {
+    return { status: 'no_deadline', daysLeft: null };
+  }
+  const prazoDate = parseBrDate(row.prazo);
+  if (!prazoDate) {
+    return { status: 'no_deadline', daysLeft: null };
+  }
+  const now = new Date();
+  const todayDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const prazoDay = new Date(prazoDate.getFullYear(), prazoDate.getMonth(), prazoDate.getDate());
+  const daysLeft = Math.round((prazoDay - todayDay) / (1000 * 60 * 60 * 24));
+
+  if (daysLeft < 0) {
+    return { status: 'expired', daysLeft };
+  }
+  if (daysLeft <= 3) {
+    return { status: 'followup', daysLeft };
+  }
+  return { status: 'active', daysLeft };
+}
+
+function getNumericId(val, fallback = 0) {
+  if (typeof val === 'number' && !isNaN(val)) return val;
+  const str = String(val || '').trim();
+  if (/^\d+$/.test(str)) return parseInt(str, 10);
+  const numMatch = str.match(/\d+/);
+  return numMatch ? parseInt(numMatch[0], 10) : fallback;
+}
+
+function sortRowsById(rows) {
+  return [...rows].sort((a, b) => getNumericId(a.id, 999999) - getNumericId(b.id, 999999));
+}
 
 function parseBrDate(dateStr) {
   if (!dateStr) return null;
@@ -193,6 +241,14 @@ function App() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
+  const [showMsgModal, setShowMsgModal] = useState(false);
+  const [msg1Template, setMsg1Template] = useState(() => {
+    return localStorage.getItem('pastora_msg_1') || DEFAULT_MSG_1;
+  });
+  const [msg2Template, setMsg2Template] = useState(() => {
+    return localStorage.getItem('pastora_msg_2') || DEFAULT_MSG_2;
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
@@ -205,7 +261,7 @@ function App() {
       const result = await response.json();
       const rows = Array.isArray(result) ? result : (result.data || []);
       if (rows.length > 0) {
-        const normalized = rows.map((r, i) => normalizeRow(r, i));
+        const normalized = sortRowsById(rows.map((r, i) => normalizeRow(r, i)));
         setData(normalized);
         localStorage.setItem('pastora_cached_data', JSON.stringify(normalized));
         setSyncStatus('Sincronizado com Google Sheets');
@@ -240,8 +296,11 @@ function App() {
 
       // Filtro de status
       const itemVip = Boolean(item.vip || item.convidado_nao_paga);
+      const dlInfo = getDeadlineInfo(item);
       if (statusFilter === 'jantar_pago' && !item.jantar_pago) return false;
       if (statusFilter === 'pendente' && (item.jantar_pago || itemVip)) return false;
+      if (statusFilter === 'followup' && dlInfo.status !== 'followup') return false;
+      if (statusFilter === 'expirado' && dlInfo.status !== 'expired') return false;
       if (statusFilter === 'com_livro' && item.total_livros <= 0 && !item.livro_comprado) return false;
       if (statusFilter === 'vip' && !itemVip) return false;
       if (statusFilter === 'convite_enviado' && !item.convidado_em) return false;
@@ -388,13 +447,13 @@ function App() {
 
   const handleAddGuests = async (e) => {
     e.preventDefault();
-    const maxId = data.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0);
+    const maxId = data.reduce((max, item) => Math.max(max, getNumericId(item.id, 0)), 0);
     const entriesToAdd = [];
 
     if (addMode === 'single') {
       if (!newNome.trim()) return;
       entriesToAdd.push({
-        id: maxId + 1,
+        id: String(maxId + 1),
         nome: newNome.trim(),
         telemovel: newTelemovel.trim(),
         data_compra: '',
@@ -417,7 +476,7 @@ function App() {
         const telemovel = parts.slice(1).join(' ') || '';
         if (nome) {
           entriesToAdd.push({
-            id: maxId + idx + 1,
+            id: String(maxId + idx + 1),
             nome,
             telemovel,
             data_compra: '',
@@ -434,43 +493,57 @@ function App() {
 
     if (entriesToAdd.length === 0) return;
 
-    const updated = [...data, ...entriesToAdd];
+    const updated = sortRowsById([...data, ...entriesToAdd]);
     setData(updated);
     localStorage.setItem('pastora_cached_data', JSON.stringify(updated));
+
+    setNewNome('');
+    setNewTelemovel('');
+    setBatchText('');
+    setShowAddModal(false);
 
     if (scriptUrl) {
       const separator = scriptUrl.includes('?') ? '&' : '?';
       for (const guest of entriesToAdd) {
         try {
           await fetch(
-            `${scriptUrl}${separator}crm=add&key=${encodeURIComponent(authKey)}&nome=${encodeURIComponent(guest.nome)}&telemovel=${encodeURIComponent(guest.telemovel)}`,
-            { method: 'GET', mode: 'no-cors' }
+            `${scriptUrl}${separator}crm=add&key=${encodeURIComponent(authKey)}&id=${encodeURIComponent(guest.id)}&nome=${encodeURIComponent(guest.nome)}&telemovel=${encodeURIComponent(guest.telemovel)}`
           );
         } catch (err) {
           console.error('Erro ao adicionar convidado na planilha:', err);
         }
       }
-      setTimeout(() => fetchSheetData(scriptUrl, authKey), 1500);
+      setTimeout(() => fetchSheetData(scriptUrl, authKey), 1200);
     }
-
-    setNewNome('');
-    setNewTelemovel('');
-    setBatchText('');
-    setShowAddModal(false);
   };
 
-  const formatWhatsAppLink = (phone, nome) => {
+  const formatWhatsAppLink = (row, msgType = 'msg1') => {
+    const phone = row?.telemovel;
     if (!phone) return '#';
     const clean = phone.toString().replace(/\D/g, '');
-    // Se tiver 9 dígitos (padrão Portugal: 9xxxxxxxx), adiciona +351
     let finalPhone = clean;
     if (clean.length === 9) {
       finalPhone = `351${clean}`;
     } else if (clean.length === 10 || clean.length === 11) {
       finalPhone = `55${clean}`;
     }
-    const msg = encodeURIComponent(`Olá ${nome || ''}, tudo bem? Passando para falar sobre o lançamento do livro "O Porquê de Servir"!`);
-    return `https://wa.me/${finalPhone}?text=${msg}`;
+
+    const dlInfo = getDeadlineInfo(row);
+    const diasText =
+      dlInfo.daysLeft === 0
+        ? 'hoje (último dia)'
+        : dlInfo.daysLeft === 1
+          ? '1 dia'
+          : `${dlInfo.daysLeft !== null && dlInfo.daysLeft > 0 ? dlInfo.daysLeft : 3} dias`;
+    const prazoText = row?.prazo ? formatDateShort(row.prazo) : 'em breve';
+
+    const rawTemplate = msgType === 'msg2' ? msg2Template : msg1Template;
+    const personalized = rawTemplate
+      .replace(/\{nome\}/gi, row?.nome || '')
+      .replace(/\{prazo\}/gi, prazoText)
+      .replace(/\{dias\}/gi, diasText);
+
+    return `https://wa.me/${finalPhone}?text=${encodeURIComponent(personalized)}`;
   };
 
   const exportToCSV = () => {
@@ -556,17 +629,26 @@ function App() {
     );
   }
 
-  // KPIs
+  // KPIs & Estatísticas
   const totalConvidados = filteredData.length;
   const convitesEnviados = filteredData.filter((d) => Boolean(d.convidado_em)).length;
   const faltamEnviarConvite = totalConvidados - convitesEnviados;
   const jantaresPagos = filteredData.filter((d) => d.jantar_pago).length;
   const convidadosVip = filteredData.filter((d) => Boolean(d.vip || d.convidado_nao_paga)).length;
   const pendentesJantar = filteredData.filter((d) => !d.jantar_pago && !d.vip && !d.convidado_nao_paga).length;
+  const followUpList = filteredData.filter((d) => getDeadlineInfo(d).status === 'followup');
+  const expiradosList = filteredData.filter((d) => getDeadlineInfo(d).status === 'expired');
   const totalLivrosVendidos = filteredData.reduce((acc, d) => acc + (Number(d.total_livros) || 0), 0);
   const taxaConfirmacao = totalConvidados > 0
     ? Math.round(((jantaresPagos + convidadosVip) / totalConvidados) * 100)
     : 0;
+
+  // Meta global de 120 pagantes
+  const totalPagantesGlobal = data.filter((d) => d.jantar_pago).length;
+  const totalVipGlobal = data.filter((d) => Boolean(d.vip || d.convidado_nao_paga)).length;
+  const percentPagantes = Math.min(100, Math.round((totalPagantesGlobal / MAX_PAGANTES) * 100));
+  const vagasRestantes = Math.max(0, MAX_PAGANTES - totalPagantesGlobal);
+  const globalFollowUpCount = data.filter((d) => getDeadlineInfo(d).status === 'followup').length;
 
   // Gráfico 1: Evolução por data de convite vs compras
   const timelineMap = {};
@@ -642,6 +724,14 @@ function App() {
             </div>
           )}
 
+          <button
+            className="btn-outline"
+            onClick={() => setShowMsgModal(!showMsgModal)}
+            title="Personalizar 1ª e 2ª mensagem de WhatsApp"
+          >
+            <MessageSquare size={16} /> Mensagens
+          </button>
+
           <button className="btn-outline" onClick={() => setShowConfigModal(!showConfigModal)} title="Configurar conexão com Google Sheets">
             <Settings size={16} /> Planilha
           </button>
@@ -716,6 +806,133 @@ function App() {
         </div>
       )}
 
+      {showMsgModal && (
+        <div className="config-banner" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <strong style={{ color: 'var(--gold-accent)', fontSize: '0.98rem', display: 'block' }}>
+                💬 Personalizar Mensagens de WhatsApp (1ª Mensagem & 2ª Mensagem de Follow-up)
+              </strong>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Variáveis automáticas disponíveis: <code>{'{nome}'}</code> (nome do convidado), <code>{'{prazo}'}</code> (data limite) e <code>{'{dias}'}</code> (dias restantes).
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={() => {
+                  setMsg1Template(DEFAULT_MSG_1);
+                  setMsg2Template(DEFAULT_MSG_2);
+                  localStorage.setItem('pastora_msg_1', DEFAULT_MSG_1);
+                  localStorage.setItem('pastora_msg_2', DEFAULT_MSG_2);
+                }}
+              >
+                Restaurar Padrão
+              </button>
+              <button type="button" className="btn-gold" onClick={() => setShowMsgModal(false)}>
+                Concluir
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#4ade80' }}>
+                1ª Mensagem (Envio do Convite Inicial):
+              </label>
+              <textarea
+                className="search-input"
+                rows={3}
+                style={{ width: '100%', fontFamily: 'inherit', resize: 'vertical' }}
+                value={msg1Template}
+                onChange={(e) => {
+                  setMsg1Template(e.target.value);
+                  localStorage.setItem('pastora_msg_1', e.target.value);
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--gold-accent)' }}>
+                2ª Mensagem (Follow-up — Faltando ≤ 3 dias para expirar):
+              </label>
+              <textarea
+                className="search-input"
+                rows={3}
+                style={{ width: '100%', fontFamily: 'inherit', resize: 'vertical' }}
+                value={msg2Template}
+                onChange={(e) => {
+                  setMsg2Template(e.target.value);
+                  localStorage.setItem('pastora_msg_2', e.target.value);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barra de Progresso de Pagantes (Limite: 120) */}
+      <div className="progress-card">
+        <div className="progress-header">
+          <div>
+            <span className="progress-title">🎯 Meta de Pagantes do Jantar (Limite Máximo: {MAX_PAGANTES} Pagantes)</span>
+            <p className="progress-subtitle">
+              <strong>{totalPagantesGlobal}</strong> de <strong>{MAX_PAGANTES}</strong> lugares pagos preenchidos • Restam{' '}
+              <strong style={{ color: 'var(--gold-accent)' }}>{vagasRestantes} vagas</strong> disponíveis
+              {totalVipGlobal > 0 ? ` (+ ${totalVipGlobal} VIPs isentos)` : ''}
+            </p>
+          </div>
+          <div className="progress-badge">
+            {totalPagantesGlobal} / {MAX_PAGANTES} ({percentPagantes}%)
+          </div>
+        </div>
+        <div className="progress-track">
+          <div
+            className="progress-fill"
+            style={{ width: `${percentPagantes}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Alerta de Follow-up (Faltam <= 3 dias para expirar) */}
+      {globalFollowUpCount > 0 && (
+        <div className="followup-alert-banner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '260px' }}>
+            <div className="followup-alert-icon">
+              <AlertTriangle size={22} />
+            </div>
+            <div>
+              <strong style={{ color: '#facc15', fontSize: '0.96rem', display: 'block' }}>
+                ⚠️ Alerta de Follow-up: {globalFollowUpCount} convidado(s) estão a 3 dias ou menos de expirar o convite!
+              </strong>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-main)' }}>
+                Envie a <strong>2ª mensagem de Follow-up</strong> pelo botão amarelo de WhatsApp na tabela antes que o prazo termine.
+              </span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn-gold"
+              onClick={() => {
+                setStatusFilter(statusFilter === 'followup' ? 'all' : 'followup');
+                setTimeFilter('all');
+              }}
+            >
+              {statusFilter === 'followup' ? 'Mostrar Todos' : `Ver ${globalFollowUpCount} para Follow-up`}
+            </button>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => setShowMsgModal(true)}
+            >
+              <MessageSquare size={15} /> Editar 2ª Mensagem
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="kpi-grid">
         <div className="kpi-card">
@@ -737,8 +954,8 @@ function App() {
           </div>
           <div className="kpi-details">
             <h3>Jantares Pagos</h3>
-            <p>{jantaresPagos}</p>
-            <span className="kpi-sub">{taxaConfirmacao}% do total ({convidadosVip} VIP)</span>
+            <p>{jantaresPagos} <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)', fontWeight: 500 }}>/ {MAX_PAGANTES}</span></p>
+            <span className="kpi-sub">{taxaConfirmacao}% confirmados ({convidadosVip} VIP)</span>
           </div>
         </div>
 
@@ -760,7 +977,26 @@ function App() {
           <div className="kpi-details">
             <h3>Pendentes de Jantar</h3>
             <p>{pendentesJantar}</p>
-            <span className="kpi-sub">Aguardando confirmação dentro do prazo</span>
+            <span className="kpi-sub">Aguardando confirmação</span>
+          </div>
+        </div>
+
+        <div
+          className="kpi-card"
+          style={{
+            cursor: 'pointer',
+            borderColor: followUpList.length > 0 ? 'rgba(250, 204, 21, 0.5)' : undefined
+          }}
+          onClick={() => setStatusFilter(statusFilter === 'followup' ? 'all' : 'followup')}
+          title="Clique para filtrar convidados em alerta de Follow-up (≤ 3 dias)"
+        >
+          <div className="kpi-icon amber">
+            <AlertTriangle size={24} />
+          </div>
+          <div className="kpi-details">
+            <h3>Follow-up (≤ 3 dias)</h3>
+            <p style={{ color: followUpList.length > 0 ? '#facc15' : undefined }}>{followUpList.length}</p>
+            <span className="kpi-sub">{expiradosList.length} com prazo expirado</span>
           </div>
         </div>
       </div>
@@ -882,11 +1118,13 @@ function App() {
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="all">Todos os Status</option>
+              <option value="followup">⚠️ Alerta Follow-up (≤ 3 dias)</option>
               <option value="falta_convite">📤 Falta Enviar Convite</option>
               <option value="convite_enviado">📩 Convite Enviado</option>
               <option value="jantar_pago">✅ Jantar Pago</option>
               <option value="vip">🎖️ VIP</option>
               <option value="pendente">⏳ Pendentes de Jantar</option>
+              <option value="expirado">⌛ Prazo Expirado</option>
               <option value="com_livro">📚 Com Livro Comprado</option>
             </select>
 
@@ -1007,22 +1245,42 @@ function App() {
             <tbody>
               {currentRows.map((row) => {
                 const isRowVip = Boolean(row.vip || row.convidado_nao_paga);
+                const dlInfo = getDeadlineInfo(row);
                 return (
-                  <tr key={row.id}>
+                  <tr
+                    key={`${row.id}-${row.nome}`}
+                    style={
+                      dlInfo.status === 'followup'
+                        ? { backgroundColor: 'rgba(234, 179, 8, 0.06)' }
+                        : undefined
+                    }
+                  >
                     <td style={{ color: 'var(--text-muted)', fontWeight: 600 }}>#{row.id}</td>
                     <td style={{ fontWeight: 600, color: 'var(--text-main)' }}>{row.nome}</td>
                     <td>
                       {row.telemovel ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span>{row.telemovel}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ marginRight: '2px' }}>{row.telemovel}</span>
                           <a
-                            href={formatWhatsAppLink(row.telemovel, row.nome)}
+                            href={formatWhatsAppLink(row, 'msg1')}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn-whatsapp"
+                            title="Enviar 1ª Mensagem (Convite Inicial)"
                           >
-                            <Phone size={12} /> WhatsApp
+                            <Phone size={12} /> 1ª Msg
                           </a>
+                          {!row.jantar_pago && !isRowVip && (
+                            <a
+                              href={formatWhatsAppLink(row, 'msg2')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`btn-whatsapp ${dlInfo.status === 'followup' ? 'btn-whatsapp-followup' : 'btn-whatsapp-secondary'}`}
+                              title="Enviar 2ª Mensagem (Follow-up de Prazo)"
+                            >
+                              <MessageSquare size={12} /> 2ª Msg {dlInfo.status === 'followup' ? '⚠️' : ''}
+                            </a>
+                          )}
                         </div>
                       ) : (
                         '-'
@@ -1054,9 +1312,29 @@ function App() {
                     </td>
                     <td>
                       {row.prazo ? (
-                        <span className={`status-badge ${row.jantar_pago || isRowVip ? 'badge-paid' : 'badge-pending'}`}>
-                          {formatDateShort(row.prazo)}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span
+                            className={`status-badge ${
+                              row.jantar_pago || isRowVip
+                                ? 'badge-paid'
+                                : dlInfo.status === 'expired'
+                                  ? 'badge-expired'
+                                  : 'badge-pending'
+                            }`}
+                          >
+                            {formatDateShort(row.prazo)}
+                          </span>
+                          {dlInfo.status === 'followup' && (
+                            <span className="status-badge badge-followup-alert">
+                              ⚠️ {dlInfo.daysLeft === 0 ? 'Expira hoje!' : `Faltam ${dlInfo.daysLeft}d`}
+                            </span>
+                          )}
+                          {dlInfo.status === 'expired' && (
+                            <span className="status-badge badge-expired">
+                              Expirado
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span style={{ color: 'var(--text-muted)' }}>-</span>
                       )}
