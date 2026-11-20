@@ -635,20 +635,24 @@ function App() {
   const faltamEnviarConvite = totalConvidados - convitesEnviados;
   const jantaresPagos = filteredData.filter((d) => d.jantar_pago).length;
   const convidadosVip = filteredData.filter((d) => Boolean(d.vip || d.convidado_nao_paga)).length;
-  const pendentesJantar = filteredData.filter((d) => !d.jantar_pago && !d.vip && !d.convidado_nao_paga).length;
   const followUpList = filteredData.filter((d) => getDeadlineInfo(d).status === 'followup');
   const expiradosList = filteredData.filter((d) => getDeadlineInfo(d).status === 'expired');
+  const pendentesNoPrazo = filteredData.filter(
+    (d) => !d.jantar_pago && !d.vip && !d.convidado_nao_paga && getDeadlineInfo(d).status !== 'expired'
+  ).length;
   const totalLivrosVendidos = filteredData.reduce((acc, d) => acc + (Number(d.total_livros) || 0), 0);
   const taxaConfirmacao = totalConvidados > 0
     ? Math.round(((jantaresPagos + convidadosVip) / totalConvidados) * 100)
     : 0;
 
-  // Meta global de 120 pagantes
+  // Meta global de 120 pagantes e alertas globais
   const totalPagantesGlobal = data.filter((d) => d.jantar_pago).length;
   const totalVipGlobal = data.filter((d) => Boolean(d.vip || d.convidado_nao_paga)).length;
   const percentPagantes = Math.min(100, Math.round((totalPagantesGlobal / MAX_PAGANTES) * 100));
   const vagasRestantes = Math.max(0, MAX_PAGANTES - totalPagantesGlobal);
   const globalFollowUpCount = data.filter((d) => getDeadlineInfo(d).status === 'followup').length;
+  const globalFaltaConviteCount = data.filter((d) => !d.convidado_em).length;
+  const globalExpiradosCount = data.filter((d) => getDeadlineInfo(d).status === 'expired').length;
 
   // Gráfico 1: Evolução por data de convite vs compras
   const timelineMap = {};
@@ -672,14 +676,17 @@ function App() {
   // Gráfico 2: Status do Jantar
   const jantarPieData = [
     { name: 'Jantar Pago', value: jantaresPagos, color: '#22c55e' },
-    { name: 'Pendente', value: pendentesJantar, color: '#d4af37' },
+    { name: 'No Prazo', value: pendentesNoPrazo, color: '#d4af37' },
+    { name: 'Expirados', value: expiradosList.length, color: '#ef4444' },
     { name: 'VIP', value: convidadosVip, color: '#556b2f' }
   ].filter((d) => d.value > 0);
 
-  // Gráfico 3: Funil do Lançamento (Lista vs Convites Enviados pelas meninas vs Pagos vs Livros)
+  // Gráfico 3: Funil do Lançamento
   const funilBarData = [
     { etapa: 'Na Lista', total: totalConvidados },
     { etapa: 'Convites Enviados', total: convitesEnviados },
+    { etapa: 'Não Enviados', total: faltamEnviarConvite },
+    { etapa: 'Expirados', total: expiradosList.length },
     { etapa: 'Jantar Pago', total: jantaresPagos },
     { etapa: 'Livros Vendidos', total: totalLivrosVendidos }
   ];
@@ -895,6 +902,50 @@ function App() {
         </div>
       </div>
 
+      {/* Alerta de Convites Não Enviados */}
+      {globalFaltaConviteCount > 0 && (
+        <div
+          className="followup-alert-banner"
+          style={{
+            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.2) 0%, rgba(26, 35, 22, 0.95) 100%)',
+            borderColor: 'rgba(239, 68, 68, 0.55)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: '260px' }}>
+            <div
+              className="followup-alert-icon"
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                color: '#f87171',
+                borderColor: 'rgba(239, 68, 68, 0.45)'
+              }}
+            >
+              <Send size={20} />
+            </div>
+            <div>
+              <strong style={{ color: '#f87171', fontSize: '0.96rem', display: 'block' }}>
+                🚨 Alerta de Convites Não Enviados: {globalFaltaConviteCount} pessoa(s) na lista ainda não receberam o convite!
+              </strong>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-main)' }}>
+                Envie a <strong>1ª mensagem de convite</strong> no WhatsApp e clique em <strong>"Marcar Enviado"</strong> na tabela.
+              </span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn-gold"
+              onClick={() => {
+                setStatusFilter(statusFilter === 'falta_convite' ? 'all' : 'falta_convite');
+                setTimeFilter('all');
+              }}
+            >
+              {statusFilter === 'falta_convite' ? 'Mostrar Todos' : `Ver ${globalFaltaConviteCount} Não Enviados`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Alerta de Follow-up (Faltam <= 3 dias para expirar) */}
       {globalFollowUpCount > 0 && (
         <div className="followup-alert-banner">
@@ -943,7 +994,39 @@ function App() {
             <h3>Pessoas na Lista</h3>
             <p>{totalConvidados}</p>
             <span className="kpi-sub">
-              {convitesEnviados} convites enviados {faltamEnviarConvite > 0 ? `(${faltamEnviarConvite} faltam)` : ''}
+              {convitesEnviados} convites enviados
+            </span>
+          </div>
+        </div>
+
+        <div
+          className="kpi-card"
+          style={{
+            cursor: 'pointer',
+            borderColor: faltamEnviarConvite > 0 ? 'rgba(239, 68, 68, 0.55)' : undefined
+          }}
+          onClick={() => setStatusFilter(statusFilter === 'falta_convite' ? 'all' : 'falta_convite')}
+          title="Clique para filtrar convites ainda não enviados"
+        >
+          <div
+            className="kpi-icon amber"
+            style={
+              faltamEnviarConvite > 0
+                ? {
+                    backgroundColor: 'rgba(239, 68, 68, 0.16)',
+                    color: '#f87171',
+                    borderColor: 'rgba(239, 68, 68, 0.4)'
+                  }
+                : undefined
+            }
+          >
+            <Send size={22} />
+          </div>
+          <div className="kpi-details">
+            <h3>Convites Não Enviados</h3>
+            <p style={{ color: faltamEnviarConvite > 0 ? '#f87171' : undefined }}>{faltamEnviarConvite}</p>
+            <span className="kpi-sub" style={{ color: faltamEnviarConvite > 0 ? '#f87171' : undefined }}>
+              {faltamEnviarConvite > 0 ? '🚨 Em alerta para envio' : 'Todos enviados'}
             </span>
           </div>
         </div>
@@ -970,17 +1053,6 @@ function App() {
           </div>
         </div>
 
-        <div className="kpi-card">
-          <div className="kpi-icon amber">
-            <Clock size={24} />
-          </div>
-          <div className="kpi-details">
-            <h3>Pendentes de Jantar</h3>
-            <p>{pendentesJantar}</p>
-            <span className="kpi-sub">Aguardando confirmação</span>
-          </div>
-        </div>
-
         <div
           className="kpi-card"
           style={{
@@ -996,7 +1068,33 @@ function App() {
           <div className="kpi-details">
             <h3>Follow-up (≤ 3 dias)</h3>
             <p style={{ color: followUpList.length > 0 ? '#facc15' : undefined }}>{followUpList.length}</p>
-            <span className="kpi-sub">{expiradosList.length} com prazo expirado</span>
+            <span className="kpi-sub">{pendentesNoPrazo} pendentes no prazo</span>
+          </div>
+        </div>
+
+        <div
+          className="kpi-card"
+          style={{
+            cursor: 'pointer',
+            borderColor: expiradosList.length > 0 ? 'rgba(239, 68, 68, 0.45)' : undefined
+          }}
+          onClick={() => setStatusFilter(statusFilter === 'expirado' ? 'all' : 'expirado')}
+          title="Clique para filtrar convidados com convite expirado"
+        >
+          <div
+            className="kpi-icon amber"
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.14)',
+              color: '#f87171',
+              borderColor: 'rgba(239, 68, 68, 0.35)'
+            }}
+          >
+            <Clock size={24} />
+          </div>
+          <div className="kpi-details">
+            <h3>Convites Expirados</h3>
+            <p style={{ color: expiradosList.length > 0 ? '#f87171' : undefined }}>{expiradosList.length}</p>
+            <span className="kpi-sub">Prazo encerrado sem pagamento</span>
           </div>
         </div>
       </div>
@@ -1246,13 +1344,16 @@ function App() {
               {currentRows.map((row) => {
                 const isRowVip = Boolean(row.vip || row.convidado_nao_paga);
                 const dlInfo = getDeadlineInfo(row);
+                const isUnsent = !row.convidado_em;
                 return (
                   <tr
                     key={`${row.id}-${row.nome}`}
                     style={
-                      dlInfo.status === 'followup'
-                        ? { backgroundColor: 'rgba(234, 179, 8, 0.06)' }
-                        : undefined
+                      isUnsent
+                        ? { backgroundColor: 'rgba(239, 68, 68, 0.07)' }
+                        : dlInfo.status === 'followup'
+                          ? { backgroundColor: 'rgba(234, 179, 8, 0.06)' }
+                          : undefined
                     }
                   >
                     <td style={{ color: 'var(--text-muted)', fontWeight: 600 }}>#{row.id}</td>
@@ -1295,19 +1396,24 @@ function App() {
                           ✓ {formatInviteDate(row.convidado_em)}
                         </span>
                       ) : (
-                        <button
-                          type="button"
-                          className="btn-whatsapp"
-                          style={{
-                            backgroundColor: 'rgba(212, 175, 55, 0.16)',
-                            color: 'var(--gold-accent)',
-                            borderColor: 'rgba(212, 175, 55, 0.45)'
-                          }}
-                          onClick={() => handleMarkInviteSent(row)}
-                          title="Clique para confirmar que o convite foi enviado (salva data e hora na planilha)"
-                        >
-                          <Send size={12} /> Marcar Enviado
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span className="status-badge badge-expired">
+                            🚨 Não Enviado
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-whatsapp"
+                            style={{
+                              backgroundColor: 'rgba(212, 175, 55, 0.16)',
+                              color: 'var(--gold-accent)',
+                              borderColor: 'rgba(212, 175, 55, 0.45)'
+                            }}
+                            onClick={() => handleMarkInviteSent(row)}
+                            title="Clique para confirmar que o convite foi enviado (salva data e hora na planilha)"
+                          >
+                            <Send size={12} /> Marcar Enviado
+                          </button>
+                        </div>
                       )}
                     </td>
                     <td>
