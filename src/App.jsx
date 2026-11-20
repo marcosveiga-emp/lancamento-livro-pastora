@@ -683,12 +683,17 @@ function App() {
 
   // Gráfico 3: Funil do Lançamento
   const funilBarData = [
-    { etapa: 'Na Lista', total: totalConvidados },
-    { etapa: 'Convites Enviados', total: convitesEnviados },
-    { etapa: 'Não Enviados', total: faltamEnviarConvite },
-    { etapa: 'Expirados', total: expiradosList.length },
-    { etapa: 'Jantar Pago', total: jantaresPagos },
-    { etapa: 'Livros Vendidos', total: totalLivrosVendidos }
+    { etapa: 'Na Lista', total: totalConvidados, color: '#d4af37', isAlert: false },
+    { etapa: 'Convites Enviados', total: convitesEnviados, color: '#d4af37', isAlert: false },
+    {
+      etapa: 'Não Enviados',
+      total: faltamEnviarConvite,
+      color: faltamEnviarConvite > 0 ? '#ef4444' : '#d4af37',
+      isAlert: faltamEnviarConvite > 0
+    },
+    { etapa: 'Expirados', total: expiradosList.length, color: '#d4af37', isAlert: false },
+    { etapa: 'Jantar Pago', total: jantaresPagos, color: '#d4af37', isAlert: false },
+    { etapa: 'Livros Vendidos', total: totalLivrosVendidos, color: '#d4af37', isAlert: false }
   ];
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
@@ -1173,12 +1178,38 @@ function App() {
               <BarChart data={funilBarData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2c3a25" horizontal={true} vertical={false} />
                 <XAxis type="number" stroke="#9aa690" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-                <YAxis dataKey="etapa" type="category" stroke="#f4f5f0" fontSize={11} width={118} tickLine={false} axisLine={false} />
+                <YAxis
+                  dataKey="etapa"
+                  type="category"
+                  width={118}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={({ x, y, payload }) => {
+                    const isUnsentAlert = payload.value === 'Não Enviados' && faltamEnviarConvite > 0;
+                    return (
+                      <text
+                        x={x}
+                        y={y}
+                        dy={4}
+                        textAnchor="end"
+                        fill={isUnsentAlert ? '#f87171' : '#f4f5f0'}
+                        fontSize={11}
+                        fontWeight={isUnsentAlert ? 700 : 400}
+                      >
+                        {payload.value}
+                      </text>
+                    );
+                  }}
+                />
                 <RechartsTooltip
                   contentStyle={{ backgroundColor: '#1a2316', border: '1px solid #d4af37', borderRadius: '8px' }}
                   cursor={{ fill: 'rgba(212, 175, 55, 0.08)' }}
                 />
-                <Bar dataKey="total" name="Quantidade" fill="#d4af37" radius={[0, 6, 6, 0]} barSize={22} />
+                <Bar dataKey="total" name="Quantidade" radius={[0, 6, 6, 0]} barSize={22}>
+                  {funilBarData.map((entry, index) => (
+                    <Cell key={`funil-cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
